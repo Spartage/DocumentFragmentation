@@ -10,7 +10,7 @@ load_dotenv()
 
 @pytest.fixture
 def mock_fragment_service():
-    file_path = os.getenv("FILE_PATH_TEST")
+    file_path = "app\\tests\\misc\\adereso_test.jsonl"
     gpt_api_key = os.getenv("GPT_API_KEY")
     return FragmentService(file_path=file_path, gpt_api_key=gpt_api_key)
 
@@ -45,14 +45,14 @@ async def test_get_fragments_from_file(mock_fragment_service):
 @pytest.mark.asyncio
 async def test_empty_jsonl_file(mock_fragment_service):
     # Test for empty jsonl input
-    service = FragmentService(file_path=os.getenv("FILE_PATH_TEST_EMPTY"), gpt_api_key=os.getenv("GPT_API_KEY"))
+    service = FragmentService(file_path="app\\tests\\misc\\adereso_test_empty.jsonl", gpt_api_key=os.getenv("GPT_API_KEY"))
     output = await service.get_fragments_from_file()
     assert output == ""
 
 @pytest.mark.asyncio
 async def test_missing_fields():
     # Test for jsonl input with missing fields
-    service = FragmentService(file_path=os.getenv("FILE_PATH_TEST_MISSING_FIELDS"), gpt_api_key=os.getenv("GPT_API_KEY"))
+    service = FragmentService(file_path="app\\tests\\misc\\adereso_test_missing_fields.jsonl", gpt_api_key=os.getenv("GPT_API_KEY"))
     with pytest.raises(HTTPException) as exc_info:
         await service.get_fragments_from_file()
 

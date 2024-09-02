@@ -42,8 +42,6 @@ pip install -r requirements.txt
 
 Utilizando el .env.example es necesario generar un archivo .env en la misma ruta que tenga la informacion necesaria,
 
-Todos los FILE_PATH referentes a testing no son necesarios para correr la aplicación, solo por si se quieren probar los tests unitarios.
-
 ## Uso
 
 Al levantar la aplicación FastAPI tendrás acceso al endpoint /Fragments/get_fragments_api_fragments__get.
