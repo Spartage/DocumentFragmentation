@@ -22,6 +22,22 @@ class FragmentService:
         fragments = []
         client = OpenAI(api_key = self.gpt_api_key)
 
+        # Verify that articles have all required fields
+        required_fields = {"type", "url", "text"}
+        for i, item in enumerate(original_data):
+            if "type" not in item:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Missing Field: 'type'"
+                )
+            if item["type"] == "article":
+                if not required_fields.issubset(item):
+                    missing_fields = required_fields - item.keys()
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Missing Fields: {', '.join(missing_fields)}"
+                    )
+
         # We'll do a first chatgpt call with all entries at the same time to find
         # predefined article tags in which we are going to categorize each article after
 
