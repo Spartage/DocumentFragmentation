@@ -3,6 +3,7 @@ from app.utils.file_utils import read_jsonl_file
 from openai import OpenAI
 from fastapi import HTTPException
 import json
+import asyncio
 
 class FragmentService:
     _id_counter = 1
@@ -11,7 +12,7 @@ class FragmentService:
         self.file_path = file_path
         self.gpt_api_key = gpt_api_key
 
-    async def get_fragments_from_file(self) -> list[FragmentResponse]:
+    async def get_fragments_from_file(self) -> str:
         """
         Reads .jsonl and and fragments each article data with information generated
         by GPT
@@ -29,26 +30,48 @@ class FragmentService:
             if line["type"] == "article":
                 combined_data += line["text"] + "\n"
 
-        categories = self.identify_categories_with_gpt(combined_data, client)
+        categories = self._identify_categories_with_gpt(combined_data, client)
 
+        # Add chatgpt Calls to run as coroutines
+        tasks = []
         for item in original_data:
             if item.get("type") == "article":
-                title, summary, tags = await self._generate_fragment_details(item["text"], categories, client)
-                
-                fragment = FragmentResponse(
-                    id=self._generate_id(),
-                    title=title,
-                    content=item["text"],
-                    summary=summary,
-                    tags=tags,
-                    url=item["url"],
-                    related_fragments=[]  # We are going to implement this after al fragments have been proccesed
-                )
-                fragments.append(fragment)
+                task = self._process_single_fragment(item, categories, client)
+                tasks.append(task)
 
-        return fragments
+        fragments = await asyncio.gather(*tasks)
+
+        fragments = self._assign_related_fragments(fragments)
+
+        # Converts fragments to jsonl
+        jsonl_fragments = "\n".join(json.dumps(fragment.model_dump()) for fragment in fragments)
+
+        return jsonl_fragments
+
     
-    def identify_categories_with_gpt(self, content: str, client: OpenAI) -> dict:
+    async def _process_single_fragment(self, item: dict, categories: str, client: OpenAI) -> FragmentResponse:
+        """
+        Process a single fragment calling chatgpt API
+        :param item: Fragment data to process.
+        :param categories: Predefined categories.
+        :param client: OpenAI client.
+        :return: FragmentResponse with processed data.
+        """
+        title, summary, tags = await self._generate_fragment_details(item["text"], categories, client)
+
+        fragment = FragmentResponse(
+            id=self._generate_id(),
+            title=title,
+            content=item["text"],
+            summary=summary,
+            tags=tags,
+            url=item["url"],
+            related_fragments=[]  # We will fill this after all fragments have been processed
+        )
+
+        return fragment
+    
+    def _identify_categories_with_gpt(self, content: str, client: OpenAI) -> dict:
         """
         Call GPT to review all content and find categories for them
         :param content: Text with all .jsonl info.
@@ -56,7 +79,9 @@ class FragmentService:
         :return: List of suggested categories in json format.
         """
         prompt = f"""
-        Aquí tienes un conjunto de textos que forman parte de la documentación de Adereso.ai. Necesito que analices todo el contenido y generes una lista de categorías o secciones generales que mejor representen la organización de estos documentos. Las categorías deben ser específicas y útiles para clasificar la documentación.
+        Aquí tienes un conjunto de textos que forman parte de la documentación de Adereso.ai.
+        Necesito que analices todo el contenido y generes una lista de categorías o secciones generales que mejor representen la organización de estos documentos.
+        Las categorías deben ser específicas y útiles para clasificar la documentación.
 
         Contenido:
         \"\"\"{content}\"\"\"
@@ -102,7 +127,8 @@ class FragmentService:
         """
 
         prompt = f"""
-                Estás ayudando a organizar la documentación técnica de una plataforma llamada Adereso.ai. Quiero que leas el siguiente texto y generes un título, un resumen, y elijas un máximo de 3 categorias desde las categorias predefinidas
+                Estás ayudando a organizar la documentación técnica de una plataforma llamada Adereso.ai.
+                Quiero que leas el siguiente texto y generes un título, un resumen, y elijas un máximo de 3 categorias desde las categorias predefinidas
 
                 1. **títle**: Genera un título corto y descriptivo que capture la esencia del contenido del texto.
                 2. **summary**: Proporciona un resumen conciso que explique los puntos principales del texto.
@@ -142,6 +168,22 @@ class FragmentService:
         summary = generated_data.get("summary", "No summary available.")
         tags = generated_data.get("tags", [])
         return title, summary, tags
+    
+    def _assign_related_fragments(self, fragments: list[FragmentResponse]) -> list[FragmentResponse]:
+        """
+        Assigns articles related to each fragment based on tags similarity.
+        :param fragments: FragmentResponse's list with processed fragments.
+        :return: Updated FragmentResponse's list with assigned related articles.
+        """
+        for fragment in fragments:
+            related_ids = []
+            for other_fragment in fragments:
+                if fragment.id != other_fragment.id:
+                    shared_tags = set(fragment.tags).intersection(set(other_fragment.tags))
+                    if len(shared_tags) >= 2:
+                        related_ids.append(other_fragment.id)
+            fragment.related_fragments = related_ids
+        return fragments
 
 
     def _generate_id(self) -> int:
