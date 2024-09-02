@@ -40,7 +40,9 @@ pip install -r requirements.txt
 
 4. Configurar Environment:
 
-Utilizando el .env.example es necesario generar un archivo .env en la misma ruta que tenga la informacion necesaria
+Utilizando el .env.example es necesario generar un archivo .env en la misma ruta que tenga la informacion necesaria,
+
+Todos los FILE_PATH referentes a testing no son necesarios para correr la aplicación, solo por si se quieren probar los tests unitarios.
 
 ## Uso
 
