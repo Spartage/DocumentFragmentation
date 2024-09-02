@@ -2,9 +2,11 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from app.schemas.fragment import FragmentResponse
 from app.services.fragment_service import FragmentService
+from dotenv import load_dotenv
 import os
 
 router = APIRouter()
+load_dotenv()
 
 @router.get("/", response_model=FragmentResponse, response_class=StreamingResponse)
 async def get_fragments():
