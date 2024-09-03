@@ -5,7 +5,7 @@ Este proyecto es un servicio de procesamiento de fragmentos diseñado para anali
 ## Características
 
 - *Identificación de categorías:* Realiza una llama a GPT con todo el contenido para identificar categorías predefinidas.
-- *Procesamiento de framentos:* Genera títulos, resúmenes y etiqueta de acuerdo a las categorias predefinidas para cada fragmento de un documento JSONL.
+- *Procesamiento de fragmentos:* Genera títulos, resúmenes y etiqueta de acuerdo a las categorias predefinidas para cada fragmento de un documento JSONL.
 - *Asignación de fragmentos relacionados:* Determina qué fragmentos están relacionados al menos en 2 etiquetas.
 - *Salida en formato .jsonl:* Devuelve el resultado en un formato JSONL fácil de procesar.
 
